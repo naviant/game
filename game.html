@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>    
+    .row{
+        display: flex;
+        justify-content: center;}
+    .cell{
+        user-select: none;
+        background-size: cover;
+        width: 75px;
+        height: 75px;
+        box-sizing: border-box;
+        position: relative;
+        display: flex;
+        justify-content:center;
+        align-items:center;
+        background: radial-gradient(white 10%,#52b01c 100%);
+        border-radius: 10%;
+        border-width: 1px;
+        border-style:solid;
+        border-color: white;
+        transition-property: background;
+        transition-duration: 1s;
+    }
+    .waterCell{
+        user-select: none;
+        width: 75px;
+        height: 75px;
+        position: relative;
+         box-sizing: border-box;
+        border-radius: 10%;
+        border-width: 1px;
+        border-style:solid;
+        border-color: white;
+        background: linear-gradient(180deg, rgba(71,194,230) 0%, rgba(0,177,255) 100%);
+        display: flex;
+        justify-content:center;
+        align-items:center;
+    }
+    .select{
+        animation: blink 0.8s linear 0.7s infinite;
+    }
+    .showNeigh{
+        animation: blinkNeigh 0.7s linear 1;
+    }
+    @keyframes blink{
+        30%{
+            border-radius: 15%}
+        70%{
+            border-radius: 2%}
+    } 
+    @keyframes blinkNeigh{        
+        50%{border-radius: 20%}
+    }   
+    .boat{
+        user-select: none;
+        position: absolute;
+        transition: all 0.5s linear; 
+        left: 0px;
+        margin-left: 3%;
+        width: 95%;
+        height: 95%;
+        pointer-events: none;
+        z-index: 100;
+    }
+    .pirat{
+        user-select: none;
+        pointer-events: none;
+        z-index: 101;
+        left: 0px;/*нужно для transition*/
+        top:0px;/*нужно для transition*/
+    }
+    .piratMove{
+        position: absolute;
+        transition: all 0.3s linear;
+    }
+    .divPirats{
+        left: 0px;
+        top: 0px;
+        width: 30%;
+        height: 30%;
+        transition: all 0.5s linear;
+        position: relative;
+        pointer-events: none;
+        display: flex;        
+        justify-content:center;
+        align-items:center;
+    }
+    .river{ 
+        pointer-events: auto;
+        box-sizing: border-box;
+        margin-top: 0%;
+        width: 100%;
+        height: 50%;
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #11111105;
+        }
+    .money{
+        position: absolute;
+        user-select: none;
+        bottom: 3%;
+        left: 35%;
+        text-align: center;
+        position: absolute;
+        width: 30%;
+        height: 30%;
+        box-sizing: border-box;
+        border-radius: 50%;        
+    }
+    .gold{
+        border: 2px solid;
+        background-color: gold;
+    }
+    .notTake{
+        background-color: whitesmoke;
+    }
+    .info{
+        top: 100px;
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+    }
+    .infocl{
+        box-sizing: border-box;
+        width: 30px;
+        height: 30px;
+    }
+    .inforow{
+        display: flex;
+        margin: 5px;        
+    }
+    #i1{
+        background-image: url(pirat1.svg);
+        background-size: cover;
+    }
+    #i3{
+        background-image: url(img/pirat2.svg);
+        background-size: cover;
+    }
+    #i2,#i4{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 3px;
+        border: solid black 2px;
+        border-radius: 50%;
+        background-color: gold;
+    }
+</style>    
+</head>
+<body>
+    <div class="info"><div class='inforow'><div class="infocl" id='i1'></div><div class="infocl" id='i2'></div></div><div class='inforow'><div class="infocl" id='i3'></div><div class="infocl" id='i4'></div></div></div>
+</body>    
+<script>
+let result1=document.getElementById('i2');
+let result2=document.getElementById('i4');
+result1.textContent=0;
+result2.textContent=0;
+let boat={'1':0,'2':0};
+let teamDict={'1':0,'2':0};//1-желтые 2-красные.
+let cellLength=75;
+let cellHeight=75;
+let id_=0;
+let numCell=9;
+let openEls=[];
+let team;
+let dict={}/*divID:{content:[pirats,money,team,(boat-waterClass)],context:N(0-вода,1-неизведанная земля,2-поле,3-река, 4-скала,5-пещера,6-canyon(v,h,l,r),7-заросли,8-деньги),neighbors:[ElemList],position:[row,column],river[el1,el2](if ctx==3),}*/
+let contextDict={'1':[6, 2, 4, 6, 4, 7, 3],'2':[7, 7, 6, 5, 2, 2, 4],'3':[7, 3, 7, 6, 4, 2, 4],'4':[3, 2, 7, 6, 6, 7, 4],'5':[4, 4, 2, 6, 7, 3, 7],'6':[5, 4, 2, 6, 7, 2, 7],'7':[2, 3, 6, 7, 6, 4, 4]}
+let selEl=0;
+let clkEl;
+let prevEl1=0; 
+let prevEl2=0; 
+let flagEls=[];
+let outDiv=document.createElement('div');
+let moneyFlag=true;
+let goldHandlerFlag=false;
+outDiv.classList.add('container');
+document.body.append(outDiv);
+function fieldFrame(n){
+for (let row=0; row<n; row++){
+     let inDiv=document.createElement('div');
+     inDiv.classList.add('row');
+     outDiv.append(inDiv);
+     for (let i=0;i<n;i++){
+         let cellDiv=document.createElement('div');
+         let divPirats=document.createElement('div');
+         let divMoney=document.createElement('div');
+         divMoney.classList.add('money');
+         divPirats.classList.add('divPirats');
+         cellDiv.id=id_;
+         dict[id_]={content:[0,0,0],context:1,neighbors:[],position:[row,i],moneyEl:divMoney}
+         if((id_<n)||(id_%n==0)||((id_+1)%n==0)||id_>(n*n-n)){cellDiv.classList.add('waterCell');
+          dict[id_].content.push(0);
+          dict[id_].context=0;
+         divPirats.style.marginTop='20%';}//вода
+         else{cellDiv.classList.add('cell');}         
+         inDiv.append(cellDiv);
+         cellDiv.append(divPirats);
+         cellDiv.append(divMoney);
+         cellDiv.addEventListener('pointerdown',handler);
+         id_++;}}}    
+fieldFrame(numCell);
+function check(l,n=numCell){
+    if((l[0]<0)||(l[0]>n-1)||(l[1]<0)||(l[1]>n-1)){
+        return -1;}
+    
+    return l[0]*n+l[1];}//l=[row,column]; return id
+function neighbors(n){
+    for(let i=0;i<n*n;i++){
+        let row=dict[i].position[0];
+        let col=dict[i].position[1];
+        let list=dict[i].neighbors;
+        let f=!dict[i].context;//вода
+        if(f){
+            let l=[[row-1,col],[row,col-1],[row,col+1],[row+1,col]];
+            for(let i=0;i<4;i++){                
+                let f=check(l[i]);
+                if(f>=0){list.push(document.getElementById(f));}}}     
+        else{let l=[[row-1,col-1],[row-1,col],[row-1,col+1],[row,col-1],[row,col+1],[row+1,col-1],[row+1,col],[row+1,col+1]]; 
+             for(let i=0;i<8;i++){
+                f=check(l[i]);
+                list.push(document.getElementById(f));}}}}//назначить соседей
+neighbors(numCell);
+function showNeigh(elId,el){
+    let flag=0;
+    function remove(){
+        this.classList.remove('showNeigh');
+        this.removeEventListener('animationend',remove);
+    }
+    if((dict[elId].context==0)&&(dict[elId].content[3]==0)){flag=1}//пират в воде без лодки
+    let l=dict[elId].neighbors;    
+    for(let i=0;i<l.length;i++){
+        if (flag==1){
+            if(l[i].classList.contains('cell')){
+                l[i].style.pointerEvents='none';
+                flagEls.push(l[i]);
+                flag=0;
+                continue;
+            }
+        }//п в воде без л
+        l[i].classList.add('showNeigh');
+        l[i].addEventListener('animationend',remove);        
+    }
+}//показать соседей
+let fieldList=[1,2,3,4,5,6,7,8,9];
+let caveEls=[];
+let canyonList=['b','r','l','h','t','v'];
+let canyonNeigh=[];
+let moneyCount=1;    
+function defCondMoney(mon){
+    mon.style.pointerEvents='none';
+    mon.style.cursor='default';
+    if(mon.classList.contains('notTake')){
+        mon.classList.remove('notTake');
+    }
+    mon.removeEventListener('pointerdown',goldHandler);
+    if(dict[selEl.id].content[1]<0){dict[selEl.id].content[1]*=(-1)};
+} 
+function goldHandler(e){
+    e.stopPropagation();
+    dict[selEl.id].content[1]*=(-1);
+    this.classList.toggle('notTake');
+    moneyFlag?moneyFlag=false:moneyFlag=true;
+    }    
+function switchGold(el){
+    if(dict[el.id].content[1]!=0){
+        let m=dict[el.id].moneyEl;
+        m.style.cursor='pointer';
+        m.style.pointerEvents='auto';
+        m.addEventListener('pointerdown',goldHandler);
+        goldHandlerFlag=true;
+    }
+}
+function field(el){
+    let n=fieldList.pop(0);
+    el.style.backgroundImage=`url(field${n}.svg)`;
+    if(n==1){fieldList=[1,2,3,4,5,6,7,8,9];}
+}
+function money(el){
+    dict[el.id].content[1]=1;
+    let m=dict[el.id].moneyEl;
+    m.classList.add('gold');
+    m.textContent='1';}
+function river(el){      
+    let r=dict[el.id].position[0];
+    let c=dict[el.id].position[1];
+    let el1=document.createElement('div');
+    let el2=document.createElement('div');
+    let mov=0;
+    clkEl=el2;
+    let selPos=dict[selEl.id].position;//position select el.
+    if((selPos[0]-r<0)||((selPos[0]-r==0)&&(selPos[1]-c<0))){mov=1;clkEl=el1;}
+    el.removeEventListener('pointerdown',handler);
+    el.innerHTML='';
+    el.style.backgroundImage='url(img/river.svg)';    
+    let m1=document.createElement('div');
+    let m2=document.createElement('div'); 
+    m1.classList.add('money');
+    m1.style.height='60%';
+    m2.classList.add('money');
+    m2.style.height='60%';
+    m1.style.top='5%';
+    m1.style.left='2%';
+    m2.style.top='5%';
+    m2.style.left='70%';
+    el.append(el1);
+    el.append(el2);
+    let divPirats1=document.createElement('div');
+    divPirats1.classList.add('divPirats');
+    let divPirats2=document.createElement('div');
+    divPirats2.classList.add('divPirats');
+    el2.append(divPirats2);    
+    el1.append(divPirats1);
+    el2.append(m2);
+    el1.append(m1);
+    
+    el1.style.top='0%';
+    el1.classList.add('river');
+    el1.addEventListener('pointerdown',handler);
+    el2.classList.add('river');
+    el2.style.top='50%';
+    el2.addEventListener('pointerdown',handler);
+    function f1(r,c){
+        let l=[];
+        l.push(String(check([r-1,c])));
+        l.push(String(check([r-1,c-1])));
+        l.push(String(check([r-1,c+1])));
+        l.push(String(check([r,c+1])));
+        l.push(String(check([r,c-1])));
+        let l2=dict[el.id].neighbors.filter(function(x){return l.includes(x.id)}) 
+        l2.push(el2);
+        return l2;        
+    } 
+    function f2(r,c){
+        let l=[];
+        l.push(String(check([r,c-1])));
+        l.push(String(check([r,c+1])));
+        l.push(String(check([r+1,c-1])));
+        l.push(String(check([r+1,c])));
+        l.push(String(check([r+1,c+1])));
+        let l2=dict[el.id].neighbors.filter(function(x){return l.includes(x.id)})
+        l2.push(el1);
+        return l2;
+    }
+    
+    el1.id='r1'+el.id;
+    el2.id='r2'+el.id;  
+    dict[el1.id]={};
+    dict[el1.id].neighbors=f1(r,c);
+    dict[el1.id].content=[0,0,0];
+    dict[el1.id].context=31;
+    dict[el1.id].position=dict[el.id].position;
+    dict[el1.id].el=el;
+    dict[el1.id].moneyEl=m1;      
+    dict[el2.id]={};
+    dict[el2.id].position=dict[el.id].position;
+    dict[el2.id].neighbors=f2(r,c);
+    dict[el2.id].content=[0,0,0];
+    dict[el2.id].context=32;
+    dict[el2.id].el=el;
+    dict[el2.id].moneyEl=m2;
+    dict[el.id].river=[el1.id,el2.id];
+    function newNeigh(nsEl,newEl){
+        for(let i=0;i<nsEl.length;i++){
+            if(nsEl[i].id[0]=='r'){continue};
+            dict[nsEl[i].id].neighbors.push(newEl);            
+        }
+    }//соседям соседей добавить эл
+    newNeigh(dict[el1.id].neighbors,el1);    
+    newNeigh(dict[el2.id].neighbors,el2);    
+    if(mov==1){
+        clkEl=el1;
+    }
+    else{clkEl=el2}
+    
+}
+function mount(el){ 
+    el.style.backgroundImage='url(mount.svg)';
+    let l=dict[el.id].neighbors;
+    for(let i=0;i<l.length;i++){
+        let lIn=dict[l[i].id].neighbors;
+        for(let n=0;n<lIn.length;n++){
+            if(lIn[n]==el){     
+                lIn.splice(n,1);
+                break;
+            }
+        }
+    }
+}
+function cave(el){
+    caveEls.push(el);
+    el.style.backgroundSize='cover';
+    el.style.backgroundImage='url(cave'+(caveEls.length)+'.svg)';
+    if(caveEls.length==2){dict[caveEls[0].id].neighbors.push(caveEls[1]);
+    dict[caveEls[1].id].neighbors.push(caveEls[0]);}       
+}
+function thicket(el){
+    el.style.backgroundColor='#31d100';
+    el.style.backgroundImage='url(thicket.svg)';
+    //если сходили на этот э-т, то следующий ход не за ним.
+}
+function canyon(el){
+    let v=canyonList.pop();
+    if(canyonList.length==0){
+        canyonList=['b','r','l','h','t','v'];
+    }
+    el.style.backgroundImage='url(img/'+v+'canyon.svg)';
+    el.firstChild.style.marginTop='0%';
+    let neighbors=dict[el.id].neighbors;
+    let oldNeigh=dict[el.id].neighbors.slice(0);
+    dict[el.id].mark=v;
+    let position=dict[el.id].position;
+    let r=position[0];//row  
+    let c=position[1];//column
+    canyonNeigh=[];
+    if(v=='v'){
+        el.firstChild.style.flexDirection='column';
+        canyonNeigh.push(String(check([r-1,c])));
+        canyonNeigh.push(String(check([r+1,c])));
+    }
+    else if(v=='h'){
+        canyonNeigh.push(String(check([r,c+1])));
+        canyonNeigh.push(String(check([r,c-1])));
+    }
+    else if(v=='l'){
+        el.firstChild.style.flexDirection='column';
+        canyonNeigh.push(String(check([r-1,c])));
+        canyonNeigh.push(String(check([r-1,c+1])));
+        canyonNeigh.push(String(check([r,c+1])));
+        canyonNeigh.push(String(check([r+1,c+1])));
+        canyonNeigh.push(String(check([r+1,c])));
+    }
+    else if(v=='r'){
+        el.firstChild.style.flexDirection='column';
+        canyonNeigh.push(String(check([r-1,c])));
+        canyonNeigh.push(String(check([r-1,c-1])));
+        canyonNeigh.push(String(check([r,c-1])));
+        canyonNeigh.push(String(check([r+1,c])));
+        canyonNeigh.push(String(check([r+1,c-1])));
+    }
+    else if(v=='t'){
+        canyonNeigh.push(String(check([r,c-1])));
+        canyonNeigh.push(String(check([r,c+1])));
+        canyonNeigh.push(String(check([r+1,c])));
+        canyonNeigh.push(String(check([r+1,c-1])));
+        canyonNeigh.push(String(check([r+1,c+1])));
+    }
+    else if(v=='b'){
+        canyonNeigh.push(String(check([r-1,c])));
+        canyonNeigh.push(String(check([r-1,c+1])));
+        canyonNeigh.push(String(check([r-1,c-1])));
+        canyonNeigh.push(String(check([r,c+1])));
+        canyonNeigh.push(String(check([r,c-1])));
+    }
+    canyonNeigh.forEach(function(el){
+        if(dict[el].context==3){
+            canyonNeigh.push(dict[el].river[0]);
+            canyonNeigh.push(dict[el].river[1]);
+        }
+    })//проверка на вхождение речки
+    for(let i=0;i<oldNeigh.length;i++){
+        let elNeigh=dict[oldNeigh[i].id].neighbors;//соседи соседнего эл-та
+        if(!canyonNeigh.includes(oldNeigh[i].id)){
+        for(let x=0;x<elNeigh.length;x++){
+            if(elNeigh[x].id==el.id){
+                elNeigh.splice(x,1);
+                break;
+            }
+        }}
+    }    
+      dict[el.id].neighbors=neighbors.filter(function(x){return canyonNeigh.includes(x.id)})    
+    }
+function openCell(el){
+    let r=dict[el.id].position[0];
+    let l=contextDict[r];
+    let n=Math.floor(Math.random()*l.length);
+    let cxt=l[n];
+    l.splice(n,1);
+//    if((el.id==22)||(el.id==38)){cxt=3}
+//    else if((el.id==12)||(el.id==28)||(el.id==43)||(el.id==68)||(el.id==57)||(el.id==65)||(el.id==25)){cxt=7}
+//    else if((el.id==39)||(el.id==14)||(el.id==23)||(el.id==32)||(el.id==41)||(el.id==40)||(el.id==55)||(el.id==10)){cxt=6}
+//    else if((el.id==24)||(el.id==50)||(el.id==37)||(el.id==67)||(el.id==70)){cxt=4}
+//    else if(caveEls.includes(Number(el.id))){cxt=5}
+    if((cxt!=4)&&(cxt!=3)&&(cxt!=5)){
+        if(moneyCount%4==0){money(el)}
+    moneyCount++;}
+    dict[el.id].context=cxt;
+    el.style.background='#55db2c';
+    el.style.backgroundSize='cover';
+    if (cxt==2){field(el)}//поле
+    else if(cxt==3){      
+        river(el);        
+    }//река
+    else if(cxt==4){mount(el)}//скала
+    else if(cxt==5){cave(el)}//пещера
+    else if(cxt==6){canyon(el)}//каньон
+    else if(cxt==7){thicket(el)}//заросли
+}
+function handler(){   
+    clkEl=this;
+    if(selEl==this){
+        selEl.classList.toggle('select');        
+        if(goldHandlerFlag){
+            defCondMoney(dict[selEl.id].moneyEl);
+            goldHandlerFlag=false;}
+        selEl=0;
+        return;}//снять выбор    
+    if(selEl==0){        
+        if(dict[this.id].content[0]==0){return;}//на клетке нет пирата
+        if((team==dict[this.id].content[2])){return};//не ваша очередь
+        if(dict[this.id].context==7){
+            let prevEl;
+            dict[this.id].content[2]==1?prevEl=prevEl1:prevEl=prevEl2;
+            if((this==prevEl)&&(this.firstChild.childNodes.length==1)){return;}
+        }//предыдущий ход был в кустарник,но не 2 пирата тамана
+        selEl=this;
+        switchGold(this);
+        selEl.classList.toggle('select');
+         showNeigh(this.id,this);
+         return;}//если не выбран, то выбрать если...
+    if((dict[selEl.id].content[3]==1)&(dict[clkEl.id].content[3]==1)){return}//встретились лодки
+    if((dict[selEl.id].content[2]!=dict[clkEl.id].content[2])&(dict[clkEl.id].content[3])==1){return};//не в свою лодку лезет 
+    if((dict[selEl.id].content[3]==1)&(dict[clkEl.id].content[0]!=0)&(dict[selEl.id].content[2]!=dict[clkEl.id].content[2])){
+        dict[clkEl.id].content[0]=0;
+        clkEl.firstChild.innerHTML='';        
+    }//лодка на пирате
+    if(!dict[selEl.id].neighbors.includes(this)){
+             showNeigh(selEl.id)
+        return;}//если клик не в соседа  
+    if(dict[this.id].context==1){
+        openCell(this);
+        if(dict[selEl.id].content[1]>0){
+        dict[selEl.id].content[1]*=(-1)};//не брать монетку
+        if(!dict[selEl.id].neighbors.includes(this)){
+            dict[selEl.id].content[1]=-dict[selEl.id].content[1];
+           selEl.classList.toggle('select');    
+            team=dict[selEl.id].content[2];            
+            team==1?prevEl1=this:prevEl2=this; 
+            if(goldHandlerFlag){
+            defCondMoney(dict[selEl.id].moneyEl);
+            goldHandlerFlag=false;}
+            selEl=0;
+            return;
+        }//оказалась не сосед
+    };//неизведанная земля    
+    play(selEl.id,clkEl.id);
+    draw(selEl,clkEl);       
+    selEl.classList.toggle('select');  
+    
+    if(goldHandlerFlag){
+            defCondMoney(dict[selEl.id].moneyEl);
+            goldHandlerFlag=false;}
+    team=dict[clkEl.id].content[2];    
+    team==1?prevEl1=this:prevEl2=this;    
+    selEl=0;
+    if(flagEls.length!=0){
+        for(el of flagEls){el.style.pointerEvents='auto'}
+        flagEls=[];
+    }
+    result1.textContent=teamDict[1];
+    result2.textContent=teamDict[2];
+}
+
+function play(sId,cId){
+    let sCnt=dict[sId].content;
+    let sCxt=dict[sId].context;
+    let cCnt=dict[cId].content;
+    let cCxt=dict[cId].context;
+    if((cCnt[0]!=0)&&(cCnt[2]!=sCnt[2])){        
+        dict[boat[cCnt[2]]].content[0]+=cCnt[0];
+        cCnt[0]=10;
+        sCnt[1]*=(-1);
+    }//пираты разных команд
+    if(sCnt[1]<0){sCnt[1]=-sCnt[1];
+                  cCnt[0]+=1;
+                  sCnt[0]-=1;
+                  cCnt[2]=sCnt[2];
+                  if(sCnt[0]==0){sCnt[2]=0};                  
+                  return;
+                 }//оставить монетку
+    if((sCnt[3]==1)&&(cCxt==0)){
+        sCnt[3]=-1;
+        cCnt[3]=1;
+        cCnt[0]+=sCnt[0];
+        sCnt[0]=0;
+        cCnt[2]=sCnt[2];
+        sCnt[2]=0;
+        boat[cCnt[2]]=cId;
+        return;}//если выбрана лодка и клик на воду
+    if(sCnt[1]!=0){
+        sCnt[1]-=1;
+        sCnt[1]=-sCnt[1];
+        cCnt[1]+=1;
+        cCnt[1]=-cCnt[1];       
+    }//монетка переходит
+    cCnt[0]+=1;
+    cCnt[2]=sCnt[2];
+    sCnt[0]-=1;
+    if((sCnt[0]==0)&&(sCnt[3]!=1)){sCnt[2]=0};//если в селекте не осталось пиратов, то номер команды 0. Eсли это не лодка, умник 
+}
+function draw(sEl,cEl){
+    let f=0;//1-пещера,2-монета.
+    let sDivPirats=sEl.firstChild;
+    let cDivPirats=cEl.firstChild;
+    let sId=sEl.id;
+    let cId=cEl.id;
+    let sCnt=dict[sId].content;
+    let sCxt=dict[sId].context;    
+    let cCnt=dict[cId].content;
+    let cCxt=dict[cId].context;
+    if((sCxt==cCxt)&&(sCxt==5)){
+        f=1;
+        sEl.style.overflow='hidden';
+        cEl.style.overflow='hidden';
+                             }//пещера
+    let sRow=dict[sId].position[0];
+    let sCol=dict[sId].position[1];
+    let cRow=dict[cId].position[0];
+    let cCol=dict[cId].position[1];
+    let rowOffset=(cRow-sRow)*cellHeight+'px';
+    if ((sCxt==31)&&(cCxt==32)){rowOffset=cellHeight/2+'px'};
+    if ((sCxt==32)&&(cCxt==31)){rowOffset=-cellHeight/2+'px'};
+    let colOffset=(cCol-sCol)*cellLength+'px';
+    if(sCnt[3]==-1){
+        sCnt[3]=0;
+        let boat=sEl.lastChild;
+        boat.style.top=rowOffset;
+        boat.style.left=colOffset;
+        sDivPirats.style.top=rowOffset;
+        sDivPirats.style.left=colOffset;
+        function transPirat(){
+            cDivPirats.innerHTML+=sDivPirats.innerHTML;
+            sDivPirats.innerHTML=null;        sDivPirats.removeEventListener('transitionend',transPirat);
+            sDivPirats.style.top='0px';
+            sDivPirats.style.left='0px';}
+        function transBoat(){
+            boat.style.top='0px';
+            boat.style.left='0px';        
+            cEl.append(boat);
+            boat.removeEventListener('transitionend', transBoat)}        sDivPirats.addEventListener('transitionend',transPirat);
+        boat.addEventListener('transitionend', transBoat);
+        return;}//уплыла лодка
+//передвижение пирата
+    let pirat=sDivPirats.firstChild;
+    pirat.classList.add('piratMove');
+    pirat.style.top=rowOffset;
+    pirat.style.left=colOffset;
+    if(cCnt[0]>10){
+        cCnt[0]-=10;
+        let bEl=document.getElementById(boat[cCnt[2]==1?2:1]);
+        let l=cDivPirats.childNodes;
+        for(let i=0;i<l.length;){
+            bEl.firstChild.append(l[0]);
+        }
+    }//пираты разных команд
+    function transPirat(){
+        pirat.style.top='0px';
+        pirat.style.left='0px';
+        pirat.classList.remove('piratMove');
+        cDivPirats.append(pirat); 
+        if(f==1){
+            sEl.style.overflow='visible';
+            cEl.style.overflow='visible';
+        }
+        if(f==2){
+            if(cCnt[1]==1){
+            dict[cEl.id].moneyEl.classList.add('gold')}
+        dict[cEl.id].moneyEl.textContent=String(Number(dict[cEl.id].moneyEl.textContent)+1);
+        }
+        pirat.removeEventListener('transitionend',transPirat)}
+    pirat.addEventListener('transitionend',transPirat);    
+    if((sCnt[1]<0)||(cCnt[1]<0)){
+        sCnt[1]=-sCnt[1];
+        cCnt[1]=-cCnt[1];
+        if(cCnt[3]==1){teamDict[cCnt[2]]+=1;}//с монетой в лодку
+        f=2;
+        if(cCxt==0){cCnt[1]=0;f=0}//с монеткой в воду
+        if(sCnt[1]==0){
+            dict[sEl.id].moneyEl.classList.remove('gold');
+            dict[sEl.id].moneyEl.textContent='';}
+        else{dict[sEl.id].moneyEl.textContent=String(Number(dict[sEl.id].moneyEl.textContent)-1)}        
+    } //передвижение монеты   
+    }
+let text=document.createElement('div');
+document.body.append(text);
+function start(){
+let boat1=document.createElement('img');//лодка
+let boat2=document.createElement('img');//лодка
+    boat[1]='4';
+    boat[2]='76';
+boat1.setAttribute('src','img/boat1.svg');
+boat1.classList.add('boat');
+boat2.setAttribute('src','img/boat2.svg');
+boat2.classList.add('boat');
+function piratsIni1(p){    
+        p.setAttribute('src','pirat1.svg');
+        p.classList.add('pirat');
+        p.style.width=cellLength/3-3+'px';
+        p.style.height=cellHeight/3-3+'px';
+}
+let pirat1=document.createElement('img');
+piratsIni1(pirat1);
+let pirat2=document.createElement('img');
+piratsIni1(pirat2);
+let pirat3=document.createElement('img');
+piratsIni1(pirat3);
+function piratsIni2(p){
+        p.setAttribute('src','img/pirat2.svg');
+        p.classList.add('pirat');
+        p.style.width=cellLength/3-3+'px';
+        p.style.height=cellHeight/3-3+'px';
+    }
+let pirat12=document.createElement('img');
+piratsIni2(pirat12);
+let pirat22=document.createElement('img');
+piratsIni2(pirat22);
+let pirat32=document.createElement('img');
+piratsIni2(pirat32);
+function startDraw1(){
+    let field1=document.getElementById('4');
+    dict[4].content[3]=1;
+    dict[4].content[0]=3;
+    dict[4].content[2]=1;
+    field1.append(boat1);
+    let divPirats=field1.firstChild;
+    divPirats.append(pirat1);
+    divPirats.append(pirat2);
+    divPirats.append(pirat3);
+    }
+function startDraw2(){
+    let field2=document.getElementById('76');
+    dict[76].content[3]=1;
+    dict[76].content[0]=3;
+    dict[76].content[2]=2;
+    field2.append(boat2);
+    let divPirats=field2.firstChild;
+    divPirats.append(pirat12);
+    divPirats.append(pirat22);
+    divPirats.append(pirat32);
+    }
+startDraw1();
+startDraw2();
+ }  
+start();
+    
+    
+    
+    
+    
+    
+</script>
+   
+</html>
