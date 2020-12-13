@@ -1,0 +1,65 @@
+<html>
+<head>
+    <style>
+        body{
+            display: flex;
+        }
+        div{
+            
+            width: 100px;
+            height: 100px;
+            
+                
+        }
+        #a{
+            overflow: hidden;
+            box-sizing: border-box;
+            position: relative;
+            width: 100px;
+            height: 100px;
+            background-color: aqua;
+        }
+        #b{
+            position: absolute;
+            left: 35%;
+            top:10%;
+            height: 150%;
+            background-color: crimson;
+            transform: rotate(45deg);
+        }
+        #c{
+            float: left;
+            position: relative;
+            width: 100px;
+            height: 100px;
+            background-color: antiquewhite;
+            display: flex;
+            
+        }
+        @keyframes borderBottom{
+        50%{border-bottom-left-radius: 20%;
+            border-bottom-right-radius: 20%;}    }
+        #qwe{
+            background-color: white;
+/*            background-color: */
+            width: 50%;
+            height: 50%;
+            margin: auto;
+            pointer-events: fill;
+        }
+   
+    </style>
+    
+</head>
+ <body>
+<div id='a'><div id='b'></div><div id='c'></div></div>
+     
+</body>
+<script>
+    let l=[1, 2,3];
+    let d={'1':'qwe','2':'123'};
+    alert(l[0]+' '+l[1]);
+    
+</script>
+    
+</html>
