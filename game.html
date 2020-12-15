@@ -16,7 +16,7 @@
         justify-content:center;
         align-items:center;
         background: radial-gradient(white 10%,#52b01c 100%);
-        border-radius: 10%;
+        border-radius: 5%;
         border-width: 1px;
         border-style:solid;
         border-color: white;
@@ -29,7 +29,7 @@
         height: 75px;
         position: relative;
          box-sizing: border-box;
-        border-radius: 10%;
+        border-radius: 5%;
         border-width: 1px;
         border-style:solid;
         border-color: white;
@@ -39,7 +39,8 @@
         align-items:center;
     }
     .select{
-        animation: blink 0.8s linear 0.7s infinite;
+        
+        animation: blink 0.8s linear infinite;
     }
     .showNeigh{
         animation: blinkNeigh 0.7s linear 1;
@@ -52,7 +53,13 @@
     } 
     @keyframes blinkNeigh{        
         50%{border-radius: 20%}
-    }   
+    }
+    .showAcces{
+        animation: blinkAcces 1s linear infinite;
+    }
+    @keyframes blinkAcces{
+        50%{border-radius: 20%;}
+    }
     .boat{
         user-select: none;
         position: absolute;
@@ -167,13 +174,13 @@ let cellHeight=75;
 let id_=0;
 let numCell=9;
 let openEls=[];
-let team;
+let team=0;
 let dict={}/*divID:{content:[pirats,money,team,(boat-waterClass)],context:N(0-вода,1-неизведанная земля,2-поле,3-река, 4-скала,5-пещера,6-canyon(v,h,l,r),7-заросли,8-деньги),neighbors:[ElemList],position:[row,column],river[el1,el2](if ctx==3),}*/
 let contextDict={'1':[6, 2, 4, 6, 4, 7, 3],'2':[7, 7, 6, 5, 2, 2, 4],'3':[7, 3, 7, 6, 4, 2, 4],'4':[3, 2, 7, 6, 6, 7, 4],'5':[4, 4, 2, 6, 7, 3, 7],'6':[5, 4, 2, 6, 7, 2, 7],'7':[2, 3, 6, 7, 6, 4, 4]}
 let selEl=0;
 let clkEl;
-let prevEl1=0; 
-let prevEl2=0; 
+let prevEl1=false; 
+let prevEl2=false; 
 let flagEls=[];
 let outDiv=document.createElement('div');
 let moneyFlag=true;
@@ -206,8 +213,7 @@ for (let row=0; row<n; row++){
 fieldFrame(numCell);
 function check(l,n=numCell){
     if((l[0]<0)||(l[0]>n-1)||(l[1]<0)||(l[1]>n-1)){
-        return -1;}
-    
+        return -1;}    
     return l[0]*n+l[1];}//l=[row,column]; return id
 function neighbors(n){
     for(let i=0;i<n*n;i++){
@@ -225,6 +231,49 @@ function neighbors(n){
                 f=check(l[i]);
                 list.push(document.getElementById(f));}}}}//назначить соседей
 neighbors(numCell);
+let curEl={1:[],2:[]};//id клеток с пиратами по командам
+let showAccesList=[]
+function showAcces(){
+    //вызывается в начале игры, когда сделан селект, когда снимается выбор и в конце хода
+    if((selEl==0)&&(team==0)){
+        let el=document.getElementById(curEl[1][0]);
+        el.classList.add('showAcces');
+        el=document.getElementById(curEl[2][0]);
+        el.classList.add('showAcces');     
+        return;
+    }//в начале игры
+    if(team==0){
+        let el=document.getElementById(curEl[1][0]);
+        el.classList.remove('showAcces');
+        el=document.getElementById(curEl[2][0]);
+        el.classList.remove('showAcces');
+        return;
+    }//первый селект
+    let t;
+    team==1?t=2:t=1;
+    let prevEl;
+    t==1?prevEl=prevEl1:prevEl=prevEl2;
+    let unShow=false;
+     if(prevEl){if((dict[prevEl.id].context==7)&&(dict[prevEl.id].content[0]=1)){unShow=prevEl.id}}
+    if(showAccesList[0]==undefined){
+        let el=document.getElementById(curEl[t][0]);
+        el.classList.add('showAcces');
+        showAccesList.push(curEl[t][0]);
+        return;
+    }//первый конец хода
+    for(x in showAccesList){
+        document.getElementById(showAccesList[x]).classList.remove('showAcces');
+       }    
+    if(selEl==0){
+    showAccesList=[]
+    for(x in curEl[t]){
+        if(!showAccesList.includes(curEl[t][x])){
+            if(unShow){if(curEl[t][x]==unShow){continue}}
+            showAccesList.push(curEl[t][x]);
+            document.getElementById(curEl[t][x]).classList.add('showAcces');
+        }
+    }}
+}
 function showNeigh(elId,el){
     let flag=0;
     function remove(){
@@ -250,7 +299,7 @@ let fieldList=[1,2,3,4,5,6,7,8,9];
 let caveEls=[];
 let canyonList=['b','r','l','h','t','v'];
 let canyonNeigh=[];
-let moneyCount=1;    
+let moneyCount=1;
 function defCondMoney(mon){
     mon.style.pointerEvents='none';
     mon.style.cursor='default';
@@ -317,7 +366,6 @@ function river(el){
     el1.append(divPirats1);
     el2.append(m2);
     el1.append(m1);
-    
     el1.style.top='0%';
     el1.classList.add('river');
     el1.addEventListener('pointerdown',handler);
@@ -346,7 +394,6 @@ function river(el){
         l2.push(el1);
         return l2;
     }
-    
     el1.id='r1'+el.id;
     el2.id='r2'+el.id;  
     dict[el1.id]={};
@@ -376,7 +423,6 @@ function river(el){
         clkEl=el1;
     }
     else{clkEl=el2}
-    
 }
 function mount(el){ 
     el.style.backgroundImage='url(mount.svg)';
@@ -480,11 +526,6 @@ function openCell(el){
     let n=Math.floor(Math.random()*l.length);
     let cxt=l[n];
     l.splice(n,1);
-//    if((el.id==22)||(el.id==38)){cxt=3}
-//    else if((el.id==12)||(el.id==28)||(el.id==43)||(el.id==68)||(el.id==57)||(el.id==65)||(el.id==25)){cxt=7}
-//    else if((el.id==39)||(el.id==14)||(el.id==23)||(el.id==32)||(el.id==41)||(el.id==40)||(el.id==55)||(el.id==10)){cxt=6}
-//    else if((el.id==24)||(el.id==50)||(el.id==37)||(el.id==67)||(el.id==70)){cxt=4}
-//    else if(caveEls.includes(Number(el.id))){cxt=5}
     if((cxt!=4)&&(cxt!=3)&&(cxt!=5)){
         if(moneyCount%4==0){money(el)}
     moneyCount++;}
@@ -499,8 +540,8 @@ function openCell(el){
     else if(cxt==5){cave(el)}//пещера
     else if(cxt==6){canyon(el)}//каньон
     else if(cxt==7){thicket(el)}//заросли
-}
-function handler(){   
+} 
+function handler(){
     clkEl=this;
     if(selEl==this){
         selEl.classList.toggle('select');        
@@ -508,6 +549,7 @@ function handler(){
             defCondMoney(dict[selEl.id].moneyEl);
             goldHandlerFlag=false;}
         selEl=0;
+        showAcces();
         return;}//снять выбор    
     if(selEl==0){        
         if(dict[this.id].content[0]==0){return;}//на клетке нет пирата
@@ -516,11 +558,12 @@ function handler(){
             let prevEl;
             dict[this.id].content[2]==1?prevEl=prevEl1:prevEl=prevEl2;
             if((this==prevEl)&&(this.firstChild.childNodes.length==1)){return;}
-        }//предыдущий ход был в кустарник,но не 2 пирата тамана
+        }//предыдущий ход был в кустарник,но не 2 пирата там
         selEl=this;
         switchGold(this);
         selEl.classList.toggle('select');
          showNeigh(this.id,this);
+        showAcces();
          return;}//если не выбран, то выбрать если...
     if((dict[selEl.id].content[3]==1)&(dict[clkEl.id].content[3]==1)){return}//встретились лодки
     if((dict[selEl.id].content[2]!=dict[clkEl.id].content[2])&(dict[clkEl.id].content[3])==1){return};//не в свою лодку лезет 
@@ -544,27 +587,35 @@ function handler(){
             defCondMoney(dict[selEl.id].moneyEl);
             goldHandlerFlag=false;}
             selEl=0;
+            showAcces();
             return;
         }//оказалась не сосед
     };//неизведанная земля    
     play(selEl.id,clkEl.id);
     draw(selEl,clkEl);       
-    selEl.classList.toggle('select');  
-    
+    selEl.classList.toggle('select');
     if(goldHandlerFlag){
             defCondMoney(dict[selEl.id].moneyEl);
             goldHandlerFlag=false;}
     team=dict[clkEl.id].content[2];    
-    team==1?prevEl1=this:prevEl2=this;    
+    team==1?prevEl1=this:prevEl2=this;
+    let l=curEl[team];
+    if(selEl.id[0]=='r'){
+        l.splice(l.indexOf(selEl.id.slice(2)),1)
+    }
+    else{
+    l.splice(l.indexOf(selEl.id),1)};
+    if(clkEl.id[0]=='r'){l.push(clkEl.id.slice(2))}
+    else{l.push(clkEl.id);}    
     selEl=0;
     if(flagEls.length!=0){
         for(el of flagEls){el.style.pointerEvents='auto'}
         flagEls=[];
     }
+    showAcces();
     result1.textContent=teamDict[1];
-    result2.textContent=teamDict[2];
+    result2.textContent=teamDict[2];    
 }
-
 function play(sId,cId){
     let sCnt=dict[sId].content;
     let sCxt=dict[sId].context;
@@ -583,6 +634,11 @@ function play(sId,cId){
                   return;
                  }//оставить монетку
     if((sCnt[3]==1)&&(cCxt==0)){
+        for(let i=0;i<sCnt[0]-1;i++){
+            let l=curEl[sCnt[2]];
+            l.splice(l.indexOf(sId),1);
+            l.push(cId);
+        }
         sCnt[3]=-1;
         cCnt[3]=1;
         cCnt[0]+=sCnt[0];
@@ -692,6 +748,8 @@ let boat1=document.createElement('img');//лодка
 let boat2=document.createElement('img');//лодка
     boat[1]='4';
     boat[2]='76';
+curEl[1]=['4','4','4'];
+curEl[2]=['76','76','76'];    
 boat1.setAttribute('src','img/boat1.svg');
 boat1.classList.add('boat');
 boat2.setAttribute('src','img/boat2.svg');
@@ -745,10 +803,8 @@ function startDraw2(){
 startDraw1();
 startDraw2();
  }  
-start();
-    
-    
-    
+start();    
+showAcces();
     
     
     
