@@ -176,7 +176,7 @@ let numCell=9;
 let openEls=[];
 let team=0;
 let dict={}/*divID:{content:[pirats,money,team,(boat-waterClass)],context:N(0-вода,1-неизведанная земля,2-поле,3-река, 4-скала,5-пещера,6-canyon(v,h,l,r),7-заросли,8-деньги),neighbors:[ElemList],position:[row,column],river[el1,el2](if ctx==3),}*/
-let contextDict={'1':[6, 2, 4, 6, 4, 7, 3],'2':[7, 7, 6, 5, 2, 2, 4],'3':[7, 3, 7, 6, 4, 2, 4],'4':[3, 2, 7, 6, 6, 7, 4],'5':[4, 4, 2, 6, 7, 3, 7],'6':[5, 4, 2, 6, 7, 2, 7],'7':[2, 3, 6, 7, 6, 4, 4]}
+let contextDict={'1':[6, 2, 4, 6, 4, 7, 3],'2':[7, 7, 6, 5, 2, 2, 4],'3':[7, 3, 7, 6, 4, 2, 4],'4':[3, 6, 7, 6, 6, 7, 4],'5':[4, 4, 2, 6, 7, 3, 7],'6':[5, 4, 2, 6, 7, 2, 7],'7':[2, 3, 6, 7, 6, 4, 4]}
 let selEl=0;
 let clkEl;
 let prevEl1=false; 
@@ -239,8 +239,8 @@ function showAcces(){
         let el=document.getElementById(curEl[1][0]);
         el.classList.add('showAcces');
         el=document.getElementById(curEl[2][0]);
-        el.classList.add('showAcces');     
-        return;
+        el.classList.add('showAcces');
+        return;        
     }//в начале игры
     if(team==0){
         let el=document.getElementById(curEl[1][0]);
@@ -254,7 +254,7 @@ function showAcces(){
     let prevEl;
     t==1?prevEl=prevEl1:prevEl=prevEl2;
     let unShow=false;
-     if(prevEl){if((dict[prevEl.id].context==7)&&(dict[prevEl.id].content[0]=1)){unShow=prevEl.id}}
+     if(prevEl){if((dict[prevEl.id].context==7)&&(dict[prevEl.id].content[0]==1)){unShow=prevEl.id}}
     if(showAccesList[0]==undefined){
         let el=document.getElementById(curEl[t][0]);
         el.classList.add('showAcces');
@@ -299,7 +299,6 @@ let fieldList=[1,2,3,4,5,6,7,8,9];
 let caveEls=[];
 let canyonList=['b','r','l','h','t','v'];
 let canyonNeigh=[];
-let moneyCount=1;
 function defCondMoney(mon){
     mon.style.pointerEvents='none';
     mon.style.cursor='default';
@@ -365,7 +364,7 @@ function river(el){
     el2.append(divPirats2);    
     el1.append(divPirats1);
     el2.append(m2);
-    el1.append(m1);
+    el1.append(m1);    
     el1.style.top='0%';
     el1.classList.add('river');
     el1.addEventListener('pointerdown',handler);
@@ -394,6 +393,7 @@ function river(el){
         l2.push(el1);
         return l2;
     }
+    
     el1.id='r1'+el.id;
     el2.id='r2'+el.id;  
     dict[el1.id]={};
@@ -423,6 +423,7 @@ function river(el){
         clkEl=el1;
     }
     else{clkEl=el2}
+    
 }
 function mount(el){ 
     el.style.backgroundImage='url(mount.svg)';
@@ -526,9 +527,8 @@ function openCell(el){
     let n=Math.floor(Math.random()*l.length);
     let cxt=l[n];
     l.splice(n,1);
-    if((cxt!=4)&&(cxt!=3)&&(cxt!=5)){
-        if(moneyCount%4==0){money(el)}
-    moneyCount++;}
+    if(cxt==2){money(el)}
+    if((r==4)&&(cxt==6)){money(el)}
     dict[el.id].context=cxt;
     el.style.background='#55db2c';
     el.style.backgroundSize='cover';
@@ -541,10 +541,11 @@ function openCell(el){
     else if(cxt==6){canyon(el)}//каньон
     else if(cxt==7){thicket(el)}//заросли
 } 
-function handler(){
+function handler(){ 
     clkEl=this;
     if(selEl==this){
-        selEl.classList.toggle('select');        
+        if(selEl.id[0]=='r'){document.getElementById(selEl.id.slice(2)).classList.remove('select')}
+        else{selEl.classList.remove('select');}                 
         if(goldHandlerFlag){
             defCondMoney(dict[selEl.id].moneyEl);
             goldHandlerFlag=false;}
@@ -561,14 +562,18 @@ function handler(){
         }//предыдущий ход был в кустарник,но не 2 пирата там
         selEl=this;
         switchGold(this);
-        selEl.classList.toggle('select');
+        if(selEl.id[0]=='r'){document.getElementById(selEl.id.slice(2)).classList.add('select')}
+        else{selEl.classList.add('select');}        
          showNeigh(this.id,this);
         showAcces();
          return;}//если не выбран, то выбрать если...
     if((dict[selEl.id].content[3]==1)&(dict[clkEl.id].content[3]==1)){return}//встретились лодки
     if((dict[selEl.id].content[2]!=dict[clkEl.id].content[2])&(dict[clkEl.id].content[3])==1){return};//не в свою лодку лезет 
     if((dict[selEl.id].content[3]==1)&(dict[clkEl.id].content[0]!=0)&(dict[selEl.id].content[2]!=dict[clkEl.id].content[2])){
+        curEl[dict[clkEl.id].content[2]].splice(curEl[dict[clkEl.id].content[2]].indexOf(clkEl.id),1);
         dict[clkEl.id].content[0]=0;
+        dict[clkEl.id].content[2]=0;
+        
         clkEl.firstChild.innerHTML='';        
     }//лодка на пирате
     if(!dict[selEl.id].neighbors.includes(this)){
@@ -580,8 +585,9 @@ function handler(){
         dict[selEl.id].content[1]*=(-1)};//не брать монетку
         if(!dict[selEl.id].neighbors.includes(this)){
             dict[selEl.id].content[1]=-dict[selEl.id].content[1];
-           selEl.classList.toggle('select');    
-            team=dict[selEl.id].content[2];            
+           if(selEl.id[0]=='r'){document.getElementById(selEl.id.slice(2)).classList.remove('select')}
+            else{selEl.classList.remove('select');}    
+            team=dict[selEl.id].content[2];         
             team==1?prevEl1=this:prevEl2=this; 
             if(goldHandlerFlag){
             defCondMoney(dict[selEl.id].moneyEl);
@@ -593,7 +599,8 @@ function handler(){
     };//неизведанная земля    
     play(selEl.id,clkEl.id);
     draw(selEl,clkEl);       
-    selEl.classList.toggle('select');
+    if(selEl.id[0]=='r'){document.getElementById(selEl.id.slice(2)).classList.remove('select')}
+        else{selEl.classList.remove('select');}  
     if(goldHandlerFlag){
             defCondMoney(dict[selEl.id].moneyEl);
             goldHandlerFlag=false;}
@@ -617,20 +624,30 @@ function handler(){
     result2.textContent=teamDict[2];    
 }
 function play(sId,cId){
+    console.log('ф-я плей');
     let sCnt=dict[sId].content;
     let sCxt=dict[sId].context;
     let cCnt=dict[cId].content;
     let cCxt=dict[cId].context;
-    if((cCnt[0]!=0)&&(cCnt[2]!=sCnt[2])){        
+    if((cCnt[0]!=0)&&(cCnt[2]!=sCnt[2])){
+                console.log('встреча начало');
+                console.log(curEl[cCnt[2]]);
         dict[boat[cCnt[2]]].content[0]+=cCnt[0];
+        for(let i=0;i<cCnt[0];i++){
+            curEl[cCnt[2]].push(boat[cCnt[2]]);
+                console.log(curEl[cCnt[2]]);
+        curEl[cCnt[2]].splice(curEl[cCnt[2]].indexOf(cId),1);
+                console.log(curEl[cCnt[2]]);
+        }        
         cCnt[0]=10;
         sCnt[1]*=(-1);
+                console.log('встреча конец');
     }//пираты разных команд
     if(sCnt[1]<0){sCnt[1]=-sCnt[1];
                   cCnt[0]+=1;
                   sCnt[0]-=1;
                   cCnt[2]=sCnt[2];
-                  if(sCnt[0]==0){sCnt[2]=0};                  
+                  if(sCnt[0]==0){sCnt[2]=0};             
                   return;
                  }//оставить монетку
     if((sCnt[3]==1)&&(cCxt==0)){
@@ -646,6 +663,7 @@ function play(sId,cId){
         cCnt[2]=sCnt[2];
         sCnt[2]=0;
         boat[cCnt[2]]=cId;
+        console.log('лодка по воде');
         return;}//если выбрана лодка и клик на воду
     if(sCnt[1]!=0){
         sCnt[1]-=1;
@@ -654,8 +672,9 @@ function play(sId,cId){
         cCnt[1]=-cCnt[1];       
     }//монетка переходит
     cCnt[0]+=1;
-    cCnt[2]=sCnt[2];
+    cCnt[2]=sCnt[2]; 
     sCnt[0]-=1;
+    console.log(sId+' плюс пират'+cId);
     if((sCnt[0]==0)&&(sCnt[3]!=1)){sCnt[2]=0};//если в селекте не осталось пиратов, то номер команды 0. Eсли это не лодка, умник 
 }
 function draw(sEl,cEl){
